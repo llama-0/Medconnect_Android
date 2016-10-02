@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -12,6 +13,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,19 +34,21 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button mSelectImage;
+    private Button mUploadBtn;
+    private ImageView mImageView;
+
+    private ProgressDialog mProgress;
+    private  static final int GALLERY_INTENT = 2;
 
     private StorageReference mStorage;
 
-    private static final int GALLERY_INTENT = 2;
-
-    private ProgressDialog mProgressDialog;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,13 +56,12 @@ public class MainActivity extends AppCompatActivity {
 
         mStorage = FirebaseStorage.getInstance().getReference();
 
-        mSelectImage = (Button) findViewById(R.id.selectImage);
+        mProgress = new ProgressDialog(this);
 
-        mProgressDialog = new ProgressDialog(this);
+        mUploadBtn = (Button) findViewById(R.id.upload);
+        mImageView = (ImageView) findViewById(R.id.imageView);
 
-        //DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReferenceFromUrl("https://medconnect-1c3b5.firebaseio.com/Users");
-
-        mSelectImage.setOnClickListener(new View.OnClickListener() {
+        mUploadBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -67,6 +70,8 @@ public class MainActivity extends AppCompatActivity {
                 intent.setType("image/*");
 
                 startActivityForResult(intent, GALLERY_INTENT);
+
+
             }
         });
 
@@ -78,7 +83,8 @@ public class MainActivity extends AppCompatActivity {
 
         if(requestCode == GALLERY_INTENT && resultCode == RESULT_OK) {
 
-            mProgressDialog.setMessage("Uploading...");
+            mProgress.setMessage("Uploading Image...");
+            mProgress.show();
 
             Uri uri = data.getData();
 
@@ -88,8 +94,12 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
 
-                    Toast.makeText(MainActivity.this, "Upload Done.", Toast.LENGTH_LONG).show();
-                    mProgressDialog.dismiss();
+                    mProgress.dismiss();
+                    Uri downloadUri = taskSnapshot.getDownloadUrl();
+
+                    Picasso.with(MainActivity.this).load(downloadUri).fit().centerCrop().into(mImageView);
+
+                    Toast.makeText(MainActivity.this, "Uploading Finished...", Toast.LENGTH_LONG).show();
                 }
             });
         }
